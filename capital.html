@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="http://code.jquery.com/jquery-1.11.2.js"></script>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+    <!--<div id="test">aaa</div>-->
+    <form action=""><input id="text-val" pattern="^[a-zA-Z]$" maxlength="1" type="text"></form>
+    <object data="def.svg" type="image/svg+xml" id="gamesvg"></object>
+
+    <script>
+        var cur_color = 'g';
+        var svgns = "http://www.w3.org/2000/svg";
+        var xlinkns = "http://www.w3.org/1999/xlink";
+        $(document).ready(function(){
+            var a = document.getElementById("gamesvg");
+            a.addEventListener("load", function(){
+            var svgDoc = a.contentDocument;
+            var svgRoot  = svgDoc.documentElement;
+            for (var i = 0;i < 8;i += 1){
+                for (var j = 0;j < 6;j += 1){
+                    var coor = calcXY(i,j);
+                    addSvgElem('#grey-tile', coor[0],coor[1], "tile_"+i+"_"+j);
+                }
+            }
+            // add blue, red, grey, text
+            addSvgElem('#blue-color', 320, 20);
+            addSvgElem('#red-color', 320, 65);
+            addSvgElem('#grey-color', 320, 110);
+            addSvgElem('#text-box', 320, 155, 'u-text-box');
+            // add click handle
+            $('#blue-color', svgRoot).click(function(e){
+                cur_color = 'b';
+            });
+            $('#red-color', svgRoot).click(function(e){
+                cur_color = 'r';
+            });
+            $('#grey-color', svgRoot).click(function(e){
+                cur_color = 'g';
+            });
+            // clone 26 letter text-box
+            var defs = $('defs', svgRoot);
+            for (var i = 'B'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++){
+                var new_text_box = $('g#text-box-a', svgRoot).clone();
+                new_text_box.attr('id', 'text-box-'+String.fromCharCode(i-'A'.charCodeAt(0)+'a'.charCodeAt(0)));
+                new_text_box.find('text').text(String.fromCharCode(i));
+                defs.append(new_text_box);
+
+                var new_text_tile = $('g#text-tile-a', svgRoot).clone();
+                new_text_tile.attr('id', 'text-tile-'+String.fromCharCode(i-'A'.charCodeAt(0)+'a'.charCodeAt(0)));
+                new_text_tile.find('text').text(String.fromCharCode(i));
+                defs.append(new_text_tile);
+            }
+            $('use[id=u-text-box]', svgRoot).on('click', function(e){
+                cur_color = 't';
+            });
+            $('use[id^=tile]', svgRoot).click(function(){
+                switch(cur_color){
+                    case 'b':
+                        this.setAttributeNS(xlinkns, "xlinks:href", '#blue-amy');
+                        break;
+                    case 'r':
+                        this.setAttributeNS(xlinkns, "xlinks:href", '#red-amy');
+                        break;
+                    case 't':
+                        ipt_val = $('input#text-val').val();
+                        if (ipt_val.length == 0) break;
+                        cur_char = ipt_val[0].toLowerCase();
+                        this.setAttributeNS(xlinkns, "xlinks:href", '#text-tile-'+cur_char);
+                        var coor = getXY(this.id);
+                        if (coor === null) break;
+                        var x = coor[0];
+                        var y = coor[1];
+                        break;
+                    default:
+                        this.setAttributeNS(xlinkns, "xlinks:href", '#grey-tile');
+                        break;
+                }
+            });
+            $('input#text-val').keypress(function(e){
+                if ((e.which < 'a'.charCodeAt(0) || e.which > 'z'.charCodeAt(0))
+                && (e.which < 'A'.charCodeAt(0) || e.which > 'Z'.charCodeAt(0)))
+                    return ;
+                $(this).val(String.fromCharCode(e.which));
+                e.which = String.fromCharCode(e.which).toLowerCase();
+                tb = $('use#u-text-box', svgRoot);
+                tb.get(0).setAttributeNS(xlinkns, "xlinkns:href", '#text-box-'+e.which);
+            });
+            function getXY(s){
+                coor = s.substr('tile_'.length).split('_');
+                if (coor.length < 2) return null;
+                return [parseInt(coor[0]), parseInt(coor[1])]
+            }
+            function calcXY(i, j){
+                //origin (20,20) x step 38*sqrt(3)*0.5~=33, y step 38
+                x_semistep = 32.9
+                y_semistep = 19
+                return [20+x_semistep*i, 20+y_semistep*2*j+y_semistep*(1-i%2)]
+            }
+            function addSvgElem(name, x,y, new_id){
+                var game_map = $("#game-map", svgRoot);
+                use = document.createElementNS(svgns, "use");
+                use.setAttributeNS(xlinkns, "xlinks:href", name);
+                var t = "translate(" + x + "," + y + ")";
+                use.setAttributeNS(null, "transform", t);
+                if (new_id){
+                    use.setAttributeNS(null, 'id', new_id);
+                }
+                game_map.append(use);
+                return use;
+            }
+            });
+        });
+    </script>
+</body>
+</html>
